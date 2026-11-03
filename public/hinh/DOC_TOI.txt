@@ -1,0 +1,7 @@
+Đặt ảnh vào đây (tuỳ chọn):
+
+  zuzai.png  — nhân vật Ma Zuzai (giữ tỉ lệ gốc, khuyến nghị cao khoảng 700px)
+  daosu.png  — đạo sư nhỏ (khuyến nghị cao khoảng 120px)
+
+Nếu thiếu file, game tự vẽ hình đơn giản.
+Không bắt buộc — chạy được ngay không cần ảnh.

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Đạo Sư LIVE — Cài đặt</title>
+  <style>
+    :root {
+      --bg: #12081f;
+      --panel: #1c0f2e;
+      --gold: #e0b84a;
+      --gold2: #f5d76e;
+      --muted: #b9a8d4;
+      --ok: #5dce8a;
+      --bad: #ff6b7a;
+      --line: #3a2458;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(ellipse at top, #2a1248, var(--bg) 55%);
+      color: #f4ecff;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 4px;
+      color: var(--gold2);
+      letter-spacing: 0.04em;
+    }
+    .sub { color: var(--muted); margin-bottom: 20px; font-size: 0.95rem; }
+    .canhbao {
+      background: #3a1a12;
+      border: 1px solid #a85a3a;
+      color: #ffd0b8;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      line-height: 1.45;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      color: var(--gold);
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    input[type=text], input[type=number], input[type=password] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0e0718;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    .hang { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .hang input { flex: 1; min-width: 160px; margin-bottom: 0; }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .btn-chinh { background: linear-gradient(180deg, var(--gold2), var(--gold)); color: #2a1600; }
+    .btn-phu { background: #3a2458; color: #eee; }
+    .btn-nguy { background: #6b2030; color: #ffd0d6; }
+    .btn-ok { background: #1e5a3a; color: #c8ffe0; }
+    #trangThai {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #0e0718;
+      border: 1px solid var(--line);
+      min-height: 42px;
+      line-height: 1.4;
+    }
+    #trangThai.ok { border-color: var(--ok); color: var(--ok); }
+    #trangThai.loi { border-color: var(--bad); color: var(--bad); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 4px; text-align: left; }
+    th { color: var(--gold); font-weight: 600; }
+    td input, td select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #0e0718;
+      color: #fff;
+    }
+    .huongdan ol { margin: 0; padding-left: 1.2rem; color: var(--muted); line-height: 1.55; }
+    .huongdan code {
+      background: #0e0718;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--gold2);
+      font-size: 0.88em;
+    }
+    .luu-ok { color: var(--ok); font-size: 0.85rem; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Đạo Sư LIVE</h1>
+    <p class="sub">Hiệu ứng trên sóng TikTok — không phát thưởng thật trong game nào.</p>
+
+    <div class="canhbao">
+      <strong>Quan trọng:</strong> Công cụ này <u>không</u> tự bắt đầu phiên live.
+      Bạn phải lên live bằng app TikTok hoặc LIVE Studio trước, rồi mới bấm NỐI.
+      Trang <code>/song</code> chỉ hiện hiệu ứng — thêm nó vào LIVE Studio / OBS như nguồn trình duyệt.
+    </div>
+
+    <section>
+      <h2>1. Kết nối TikTok</h2>
+      <label>Tên TikTok (không cần @)</label>
+      <div class="hang">
+        <input id="ten" type="text" placeholder="ten_kenh_cua_ban" autocomplete="off" />
+        <button class="btn-chinh" id="btnNoi" type="button">NỐI</button>
+        <button class="btn-nguy" id="btnNgat" type="button">NGẮT</button>
+      </div>
+      <label style="margin-top:10px">Khoá ký (tuỳ chọn) — Euler Stream API key nếu TikTok yêu cầu</label>
+      <input id="khoaKy" type="password" placeholder="Để trống nếu không cần" autocomplete="off" />
+      <div id="trangThai">Chưa nối</div>
+    </section>
+
+    <section>
+      <h2>2. Thử & mở trang sóng</h2>
+      <div class="hang">
+        <button class="btn-ok" id="btnThu" type="button">Thử không cần live</button>
+        <button class="btn-phu" id="btnSong" type="button">Mở trang /song</button>
+      </div>
+      <p class="sub" style="margin:10px 0 0">Bấm thử rồi mở /song để xem tụng, tim, quà, đoàn trợ trận, phong ấn.</p>
+    </section>
+
+    <section>
+      <h2>3. Cài đặt trận</h2>
+      <label>Máu Zuzai ban đầu</label>
+      <input id="mauZuzai" type="number" min="1000" step="100" />
+      <label>Chữ khoá để tụng (không phân biệt hoa thường / dấu)</label>
+      <input id="chuKhoaTung" type="text" />
+      <label><input id="amThanh" type="checkbox" /> Bật âm thanh</label>
+      <div style="margin-top:12px">
+        <button class="btn-chinh" id="btnLuu" type="button">Lưu cài đặt</button>
+        <span class="luu-ok" id="luuOk"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Bảng quà → hiệu ứng</h2>
+      <table>
+        <thead>
+          <tr><th>Từ (kim cương)</th><th>Đến</th><th>Hiệu ứng</th></tr>
+        </thead>
+        <tbody id="bangQua"></tbody>
+      </table>
+      <p class="sub" style="margin-top:8px">chuong / chuongLon / doanTroTran — lưu cùng nút phía trên.</p>
+    </section>
+
+    <section class="huongdan">
+      <h2>5. Thêm /song vào LIVE Studio hoặc OBS</h2>
+      <ol>
+        <li>Mở <code>http://localhost:3000/song</code> (nút phía trên).</li>
+        <li><strong>TikTok LIVE Studio:</strong> Nguồn → Thêm → Trình duyệt / Browser → URL trên, kích thước 1080×1920.</li>
+        <li><strong>OBS:</strong> Nguồn → Browser → URL như trên, Width 1080, Height 1920. Bật “Shutdown source when not visible” tắt nếu muốn giữ game chạy.</li>
+        <li>Nếu Windows hỏi tường lửa: bấm <strong>Cho phép</strong> (mạng riêng).</li>
+        <li>Ảnh tự thay trong thư mục <code>public/hinh/</code> (zuzai.png, daosu.png).</li>
+      </ol>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let caidat = null;
+
+    function veBang(bang) {
+      const tb = $('bangQua');
+      tb.innerHTML = '';
+      (bang || []).forEach((d, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input data-i="${i}" data-k="tu" type="number" value="${d.tu}" /></td>
+          <td><input data-i="${i}" data-k="den" type="number" value="${d.den}" /></td>
+          <td>
+            <select data-i="${i}" data-k="hieuUng">
+              <option value="chuong"${d.hieuUng==='chuong'?' selected':''}>chuong</option>
+              <option value="chuongLon"${d.hieuUng==='chuongLon'?' selected':''}>chuongLon</option>
+              <option value="doanTroTran"${d.hieuUng==='doanTroTran'?' selected':''}>doanTroTran</option>
+            </select>
+          </td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function docBang() {
+      const rows = [...$('bangQua').querySelectorAll('tr')];
+      return rows.map((tr) => {
+        const tu = Number(tr.querySelector('[data-k=tu]').value);
+        const den = Number(tr.querySelector('[data-k=den]').value);
+        const hieuUng = tr.querySelector('[data-k=hieuUng]').value;
+        return { tu, den, hieuUng };
+      });
+    }
+
+    function napForm(c) {
+      caidat = c;
+      $('mauZuzai').value = c.mauZuzai;
+      $('chuKhoaTung').value = c.chuKhoaTung;
+      $('amThanh').checked = !!c.amThanh;
+      veBang(c.bangQua);
+    }
+
+    function hienTrangThai(t) {
+      const el = $('trangThai');
+      const map = {
+        chua: 'Chưa nối',
+        dang_noi: 'Đang nối…',
+        da_noi: 'Đã nối',
+        mat_ket_noi: 'Mất kết nối',
+        ket_thuc: 'Live kết thúc',
+        loi: 'Lỗi'
+      };
+      let txt = map[t.trangThai] || t.trangThai || '—';
+      if (t.tenKenh) txt += ` · @${t.tenKenh}`;
+      if (t.loi) txt += ` — ${t.loi}`;
+      el.textContent = txt;
+      el.className = (t.trangThai === 'da_noi') ? 'ok' : (t.trangThai === 'loi' || t.trangThai === 'mat_ket_noi' ? 'loi' : '');
+    }
+
+    async function taiCaidat() {
+      const r = await fetch('/api/caidat');
+      napForm(await r.json());
+    }
+
+    $('btnLuu').onclick = async () => {
+      const body = {
+        mauZuzai: Number($('mauZuzai').value),
+        chuKhoaTung: $('chuKhoaTung').value,
+        amThanh: $('amThanh').checked,
+        bangQua: docBang(),
+        khoaKy: $('khoaKy').value
+      };
+      await fetch('/api/caidat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      $('luuOk').textContent = 'Đã lưu';
+      setTimeout(() => { $('luuOk').textContent = ''; }, 2000);
+    };
+
+    $('btnNoi').onclick = async () => {
+      await fetch('/api/noi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ten: $('ten').value, khoaKy: $('khoaKy').value })
+      });
+    };
+
+    $('btnNgat').onclick = () => fetch('/api/ngat', { method: 'POST' });
+    $('btnThu').onclick = () => fetch('/api/thu', { method: 'POST' });
+    $('btnSong').onclick = () => window.open('/song', '_blank');
+
+    function noiWs() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${location.host}`);
+      ws.onmessage = (ev) => {
+        try {
+          const m = JSON.parse(ev.data);
+          if (m.loai === 'trangthai') hienTrangThai(m);
+          if (m.loai === 'caidat') napForm(m.caidat);
+        } catch { /* ignore */ }
+      };
+      ws.onclose = () => setTimeout(noiWs, 2000);
+    }
+
+    taiCaidat();
+    noiWs();
+    fetch('/api/trangthai').then((r) => r.json()).then(hienTrangThai);
+  </script>
+</body>
+</html>

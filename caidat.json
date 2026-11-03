@@ -1,0 +1,11 @@
+{
+  "mauZuzai": 10000,
+  "chuKhoaTung": "tung",
+  "amThanh": true,
+  "bangQua": [
+    { "tu": 0, "den": 9, "hieuUng": "chuong" },
+    { "tu": 10, "den": 99, "hieuUng": "chuongLon" },
+    { "tu": 100, "den": 999999, "hieuUng": "doanTroTran" }
+  ],
+  "khoaKy": ""
+}

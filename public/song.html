@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Đạo Sư LIVE — Sóng</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      background: transparent;
+      width: 1080px; height: 1920px;
+    }
+    canvas { display: block; width: 1080px; height: 1920px; }
+  </style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+(() => {
+  const W = 1080, H = 1920;
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  const state = {
+    mauMax: 10000,
+    mau: 10000,
+    chuKhoa: 'tung',
+    amThanh: true,
+    nguyenLuc: 0,
+    nguyenLucMax: 100,
+    choangDen: 0,
+    phongAn: false,
+    phongAnDen: 0,
+    ketLieu: null,
+    top3: [],
+    top: new Map(),
+    daosu: [],
+    chuong: [],
+    chao: [],
+    baner: null,
+    lastTung: new Map(),
+    tick: 0,
+    shake: 0
+  };
+
+  const imgZ = new Image();
+  const imgD = new Image();
+  let coZ = false, coD = false;
+  imgZ.onload = () => { coZ = true; };
+  imgD.onload = () => { coD = true; };
+  imgZ.onerror = () => { coZ = false; };
+  imgD.onerror = () => { coD = false; };
+  imgZ.src = '/hinh/zuzai.png';
+  imgD.src = '/hinh/daosu.png';
+
+  function boDau(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+
+  function beep(f, ms, type = 'sine', vol = 0.04) {
+    if (!state.amThanh) return;
+    try {
+      const ac = beep.ac || (beep.ac = new (window.AudioContext || window.webkitAudioContext)());
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = type; o.frequency.value = f;
+      g.gain.value = vol;
+      o.connect(g); g.connect(ac.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + ms / 1000);
+      o.stop(ac.currentTime + ms / 1000);
+    } catch { /* ignore */ }
+  }
+
+  function congTop(ten, diem) {
+    if (!ten) return;
+    state.top.set(ten, (state.top.get(ten) || 0) + diem);
+  }
+
+  function topN(n) {
+    return [...state.top.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  }
+
+  function truMau(n, ten) {
+    if (state.phongAn) return;
+    state.mau = Math.max(0, state.mau - n);
+    state.shake = Math.min(18, state.shake + Math.min(12, n / 80));
+    if (ten) congTop(ten, n);
+    if (state.mau <= 0) batPhongAn(ten);
+  }
+
+  function batPhongAn(ten) {
+    state.phongAn = true;
+    state.phongAnDen = performance.now() + 15000;
+    state.ketLieu = ten || 'Ẩn danh';
+    state.top3 = topN(3);
+    state.daosu = [];
+    state.chuong = [];
+    beep(220, 400, 'triangle', 0.06);
+    setTimeout(() => beep(330, 500, 'triangle', 0.06), 200);
+  }
+
+  function hoiSinh() {
+    state.mauMax = Math.floor(state.mauMax * 1.2);
+    state.mau = state.mauMax;
+    state.phongAn = false;
+    state.ketLieu = null;
+    state.nguyenLuc = 0;
+    state.choangDen = 0;
+  }
+
+  function themDaoSu(ten, cheDo) {
+    if (state.daosu.length >= 40) state.daosu.shift();
+    const x = 80 + Math.random() * (W - 160);
+    state.daosu.push({
+      ten: ten || 'Đạo sư',
+      x, y: H - 120,
+      vx: (Math.random() - 0.5) * 2,
+      life: cheDo === 'doan' ? 2.8 : 1.4,
+      age: 0,
+      cheDo: cheDo || 'tung',
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  function xuLyBinhluan(e) {
+    const khoa = boDau(state.chuKhoa);
+    if (!boDau(e.noiDung).includes(khoa)) return;
+    const now = performance.now();
+    const last = state.lastTung.get(e.ten) || 0;
+    if (now - last < 3000) return;
+    state.lastTung.set(e.ten, now);
+    themDaoSu(e.ten, 'tung');
+    truMau(40 + Math.random() * 30, e.ten);
+    beep(520, 80);
+  }
+
+  function xuLyTim(e) {
+    const n = Math.min(50, Number(e.soLuong) || 1);
+    state.nguyenLuc = Math.min(state.nguyenLucMax, state.nguyenLuc + n * 0.8);
+    congTop(e.ten, n * 0.5);
+    if (state.nguyenLuc >= state.nguyenLucMax) {
+      state.nguyenLuc = 0;
+      state.baner = { text: 'ĐẠI TỤNG', age: 0, life: 2.2 };
+      for (let i = 0; i < 8; i++) themDaoSu(e.ten, 'dai');
+      truMau(state.mauMax * 0.12, e.ten);
+      beep(180, 300, 'sawtooth', 0.05);
+    }
+  }
+
+  function xuLyQua(e) {
+    const kim = Number(e.soKimCuong) || 1;
+    const hu = e.hieuUng || 'chuong';
+    congTop(e.ten, kim * 2);
+    state.baner = {
+      text: e.ten,
+      sub: (e.qua || 'Quà') + ' · ' + kim + ' kim cương',
+      anh: e.anh || '',
+      age: 0,
+      life: 3.2
+    };
+
+    if (hu === 'doanTroTran') {
+      state.choangDen = performance.now() + 3000;
+      const so = Math.min(24, 8 + Math.floor(kim / 50));
+      for (let i = 0; i < so; i++) {
+        setTimeout(() => themDaoSu(e.ten, 'doan'), i * 40);
+      }
+      truMau(Math.min(state.mauMax * 0.35, kim * 4), e.ten);
+      beep(120, 400, 'square', 0.05);
+    } else {
+      const lon = hu === 'chuongLon';
+      state.chuong.push({
+        x: 100 + Math.random() * 200,
+        y: H * 0.7,
+        tx: W / 2 + (Math.random() - 0.5) * 80,
+        ty: H * 0.38,
+        t: 0,
+        lon,
+        ten: e.ten
+      });
+      truMau(lon ? kim * 3 : kim * 2, e.ten);
+      beep(lon ? 300 : 400, 100);
+    }
+  }
+
+  function xuLyChao(e, loai) {
+    const msg = loai === 'theodoi'
+      ? `${e.ten} vừa theo dõi!`
+      : `${e.ten} vào phòng`;
+    state.chao.push({ text: msg, x: W + 20, y: 160 + (state.chao.length % 4) * 36, life: 6 });
+  }
+
+  function xuLySuKien(e) {
+    if (!e || !e.loai) return;
+    if (e.loai === 'caidat') {
+      const c = e.caidat || {};
+      if (c.mauZuzai && !state.phongAn) {
+        const tyLe = state.mau / state.mauMax;
+        state.mauMax = c.mauZuzai;
+        state.mau = Math.max(1, Math.floor(state.mauMax * tyLe));
+      } else if (c.mauZuzai && state.mau === state.mauMax) {
+        state.mauMax = c.mauZuzai;
+        state.mau = c.mauZuzai;
+      }
+      if (c.chuKhoaTung) state.chuKhoa = c.chuKhoaTung;
+      if (c.amThanh !== undefined) state.amThanh = c.amThanh;
+      return;
+    }
+    if (e.loai === 'trangthai') return;
+    if (e.loai === 'binhluan') xuLyBinhluan(e);
+    else if (e.loai === 'tim') xuLyTim(e);
+    else if (e.loai === 'qua') xuLyQua(e);
+    else if (e.loai === 'theodoi' || e.loai === 'vao') xuLyChao(e, e.loai);
+  }
+
+  function noiWs() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${proto}://${location.host}`);
+    ws.onmessage = (ev) => {
+      try { xuLySuKien(JSON.parse(ev.data)); } catch { /* ignore */ }
+    };
+    ws.onclose = () => setTimeout(noiWs, 2000);
+  }
+  noiWs();
+
+  // —— Vẽ ——
+  function veNen() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a0a2e');
+    g.addColorStop(0.45, '#2a1048');
+    g.addColorStop(1, '#0c0614');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // sương
+    ctx.fillStyle = 'rgba(180,120,255,0.04)';
+    for (let i = 0; i < 6; i++) {
+      const y = (state.tick * 0.3 + i * 280) % (H + 200) - 100;
+      ctx.beginPath();
+      ctx.ellipse(W / 2, y, 420, 90, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function veZuzai(cx, cy) {
+    const choang = performance.now() < state.choangDen;
+    const sx = choang ? Math.sin(state.tick * 0.4) * 10 : 0;
+    ctx.save();
+    ctx.translate(cx + sx, cy);
+    if (state.shake > 0) {
+      ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+    }
+    if (coZ && imgZ.naturalWidth) {
+      const maxH = 720, maxW = 700;
+      const r = Math.min(maxW / imgZ.naturalWidth, maxH / imgZ.naturalHeight);
+      const w = imgZ.naturalWidth * r, h = imgZ.naturalHeight * r;
+      ctx.drawImage(imgZ, -w / 2, -h * 0.55, w, h);
+    } else {
+      // tự vẽ bà ma
+      ctx.fillStyle = '#6b3fa0';
+      ctx.beginPath();
+      ctx.ellipse(0, 40, 160, 220, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#3a2060';
+      ctx.beginPath();
+      ctx.ellipse(0, -120, 110, 100, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f0e6ff';
+      ctx.beginPath();
+      ctx.arc(-40, -130, 14, 0, Math.PI * 2);
+      ctx.arc(40, -130, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ff4466';
+      ctx.beginPath();
+      ctx.arc(-40, -130, 6, 0, Math.PI * 2);
+      ctx.arc(40, -130, 6, 0, Math.PI * 2);
+      ctx.fill();
+      // xích
+      ctx.strokeStyle = '#c9a227';
+      ctx.lineWidth = 8;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 70, -40);
+        ctx.lineTo(i * 120, 260);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#e0b84a';
+      ctx.font = 'bold 28px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText('MA ZUZAI', 0, 280);
+    }
+    if (choang) {
+      ctx.fillStyle = 'rgba(255,220,80,0.25)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 200 + Math.sin(state.tick * 0.3) * 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffe08a';
+      ctx.font = 'bold 36px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText('CHOÁNG!', 0, -260);
+    }
+    ctx.restore();
+  }
+
+  function veThanhMau() {
+    const x = 80, y = 60, w = W - 160, h = 48;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    roundRect(x - 4, y - 4, w + 8, h + 8, 12);
+    ctx.fill();
+    const tyLe = state.mau / state.mauMax;
+    const g = ctx.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0, '#7b1e3a');
+    g.addColorStop(0.5, '#e0b84a');
+    g.addColorStop(1, '#f5d76e');
+    ctx.fillStyle = '#2a1020';
+    roundRect(x, y, w, h, 10);
+    ctx.fill();
+    ctx.fillStyle = g;
+    roundRect(x, y, Math.max(0, w * tyLe), h, 10);
+    ctx.fill();
+    ctx.fillStyle = '#fff8e0';
+    ctx.font = 'bold 26px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(`ZUZAI  ${Math.ceil(state.mau)} / ${state.mauMax}`, W / 2, y + 33);
+  }
+
+  function veNguyenLuc() {
+    const x = 80, y = 130, w = W - 160, h = 22;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    roundRect(x, y, w, h, 8);
+    ctx.fill();
+    ctx.fillStyle = '#6a4cff';
+    roundRect(x, y, w * (state.nguyenLuc / state.nguyenLucMax), h, 8);
+    ctx.fill();
+    ctx.fillStyle = '#d8c8ff';
+    ctx.font = '16px Segoe UI';
+    ctx.textAlign = 'left';
+    ctx.fillText('Nguyện lực', x + 8, y + 16);
+  }
+
+  function veDaoSu(d, dt) {
+    d.age += dt;
+    d.y -= (d.cheDo === 'doan' ? 180 : 90) * dt;
+    d.x += d.vx * 40 * dt;
+    d.phase += dt * 8;
+    const alpha = Math.max(0, 1 - d.age / d.life);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(d.x, d.y);
+    ctx.rotate(Math.sin(d.phase) * 0.12);
+    if (coD && imgD.naturalWidth) {
+      const s = 70;
+      const r = Math.min(s / imgD.naturalWidth, s / imgD.naturalHeight);
+      const w = imgD.naturalWidth * r, h = imgD.naturalHeight * r;
+      ctx.drawImage(imgD, -w / 2, -h, w, h);
+    } else {
+      ctx.fillStyle = '#e8d48a';
+      ctx.beginPath();
+      ctx.arc(0, -50, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#5a3a10';
+      ctx.fillRect(-18, -28, 36, 50);
+      ctx.fillStyle = '#c9a227';
+      ctx.beginPath();
+      ctx.moveTo(-28, -70);
+      ctx.lineTo(28, -70);
+      ctx.lineTo(0, -95);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.ten, 0, 10);
+    if (d.cheDo === 'tung' || d.cheDo === 'dai') {
+      ctx.fillStyle = '#ffe08a';
+      ctx.font = 'bold 22px Segoe UI';
+      ctx.fillText(d.cheDo === 'dai' ? 'ĐẠI TỤNG' : 'TỤNG', 0, -100 + Math.sin(d.phase) * 6);
+    }
+    ctx.restore();
+  }
+
+  function veChuong(c, dt) {
+    c.t += dt * 1.8;
+    const t = Math.min(1, c.t);
+    const x = c.x + (c.tx - c.x) * t;
+    const y = c.y + (c.ty - c.y) * t;
+    const r = c.lon ? 36 : 22;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(t * 8);
+    const g = ctx.createRadialGradient(0, 0, 2, 0, 0, r);
+    g.addColorStop(0, '#fff6c0');
+    g.addColorStop(0.5, '#e0b84a');
+    g.addColorStop(1, 'rgba(120,40,200,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return t >= 1;
+  }
+
+  function veTop() {
+    const list = topN(5);
+    const x = W - 280, y = 200;
+    ctx.fillStyle = 'rgba(10,5,20,0.55)';
+    roundRect(x, y, 250, 40 + list.length * 36, 10);
+    ctx.fill();
+    ctx.fillStyle = '#e0b84a';
+    ctx.font = 'bold 20px Segoe UI';
+    ctx.textAlign = 'left';
+    ctx.fillText('TOP GÓP SỨC', x + 14, y + 28);
+    list.forEach(([ten, diem], i) => {
+      ctx.fillStyle = '#f0e6ff';
+      ctx.font = '18px Segoe UI';
+      ctx.fillText(`${i + 1}. ${ten}`, x + 14, y + 58 + i * 36);
+      ctx.fillStyle = '#c9a227';
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.floor(diem), x + 236, y + 58 + i * 36);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  function vePhongAn() {
+    ctx.fillStyle = 'rgba(8,0,16,0.72)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#e0b84a';
+    ctx.font = 'bold 64px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('PHONG ẤN THÀNH CÔNG', W / 2, H * 0.32);
+    ctx.fillStyle = '#fff';
+    ctx.font = '32px Segoe UI';
+    ctx.fillText('Đòn cuối: ' + (state.ketLieu || '—'), W / 2, H * 0.40);
+    ctx.fillStyle = '#c9a227';
+    ctx.font = 'bold 28px Segoe UI';
+    ctx.fillText('TOP 3', W / 2, H * 0.48);
+    (state.top3 || []).forEach(([ten, diem], i) => {
+      ctx.fillStyle = '#f5e6ff';
+      ctx.font = '26px Segoe UI';
+      ctx.fillText(`${i + 1}. ${ten}  ·  ${Math.floor(diem)}`, W / 2, H * 0.48 + 48 + i * 44);
+    });
+    const con = Math.max(0, (state.phongAnDen - performance.now()) / 1000);
+    ctx.fillStyle = '#b9a8d4';
+    ctx.font = '22px Segoe UI';
+    ctx.fillText(`Hồi sinh sau ${con.toFixed(0)}s · Máu vòng sau +20%`, W / 2, H * 0.72);
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    state.tick++;
+    if (state.shake > 0) state.shake *= 0.88;
+
+    if (state.phongAn && now >= state.phongAnDen) hoiSinh();
+
+    veNen();
+    veZuzai(W / 2, H * 0.42);
+    veThanhMau();
+    veNguyenLuc();
+
+    state.daosu = state.daosu.filter((d) => {
+      veDaoSu(d, dt);
+      return d.age < d.life;
+    });
+
+    state.chuong = state.chuong.filter((c) => !veChuong(c, dt));
+
+    state.chao = state.chao.filter((c) => {
+      c.x -= 120 * dt;
+      c.life -= dt;
+      ctx.fillStyle = 'rgba(255,240,200,0.85)';
+      ctx.font = '22px Segoe UI';
+      ctx.textAlign = 'left';
+      ctx.fillText(c.text, c.x, c.y);
+      return c.life > 0 && c.x > -400;
+    });
+
+    if (state.baner) {
+      state.baner.age += dt;
+      const a = Math.min(1, state.baner.life - state.baner.age);
+      if (a <= 0) state.baner = null;
+      else {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, a * 2);
+        ctx.fillStyle = 'rgba(20,8,40,0.75)';
+        roundRect(140, H * 0.55, W - 280, 140, 16);
+        ctx.fill();
+        ctx.fillStyle = '#e0b84a';
+        ctx.font = 'bold 42px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText(state.baner.text, W / 2, H * 0.55 + 58);
+        if (state.baner.sub) {
+          ctx.fillStyle = '#f0e6ff';
+          ctx.font = '24px Segoe UI';
+          ctx.fillText(state.baner.sub, W / 2, H * 0.55 + 100);
+        }
+        ctx.restore();
+      }
+    }
+
+    veTop();
+    if (state.phongAn) vePhongAn();
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
